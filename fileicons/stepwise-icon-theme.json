@@ -1,0 +1,10 @@
+{
+  "iconDefinitions": {
+    "_cucumber": {
+      "iconPath": "../images/cucumber.svg"
+    }
+  },
+  "languageIds": {
+    "gherkin": "_cucumber"
+  }
+}

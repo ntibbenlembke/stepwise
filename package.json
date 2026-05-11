@@ -64,6 +64,13 @@
         }
       }
     ],
+    "iconThemes": [
+      {
+        "id": "stepwise-cucumber",
+        "label": "Stepwise (Cucumber Icons)",
+        "path": "./fileicons/stepwise-icon-theme.json"
+      }
+    ],
     "configuration": {
       "title": "Stepwise",
       "properties": {
