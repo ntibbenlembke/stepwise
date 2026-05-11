@@ -15,7 +15,7 @@
     "url": "https://github.com/TalonTest/stepwise/issues"
   },
   "homepage": "https://github.com/TalonTest/stepwise",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "icon": "images/icon.png",
   "categories": [
     "Programming Languages",
