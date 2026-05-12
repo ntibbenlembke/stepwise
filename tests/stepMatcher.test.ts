@@ -5,6 +5,7 @@ import {
   resolveStep,
   parseStepLine,
   filterDefinitions,
+  prettifyRegexPattern,
   StepDefinition,
 } from '../server/src/stepMatcher';
 
@@ -381,5 +382,85 @@ describe('filterDefinitions', () => {
   it('uses default limit of 50', () => {
     const many = Array.from({ length: 60 }, (_, i) => def(`step ${i}`));
     expect(filterDefinitions('step', many)).toHaveLength(50);
+  });
+
+  it('searches prettified label for regex patterns so typing "number" matches (\d+)', () => {
+    const regexDef: StepDefinition = { ...def('I eat (\\d+) cucumbers'), isRegex: true };
+    expect(filterDefinitions('number', [regexDef])).toHaveLength(1);
+  });
+
+  it('still matches raw pattern for regex definitions', () => {
+    const regexDef: StepDefinition = { ...def('I eat (\\d+) cucumbers'), isRegex: true };
+    expect(filterDefinitions('\\d+', [regexDef])).toHaveLength(1);
+  });
+});
+
+// ── prettifyRegexPattern ───────────────────────────────────────────────────────
+
+describe('prettifyRegexPattern', () => {
+  it('strips leading ^ anchor', () => {
+    expect(prettifyRegexPattern('^I eat something')).toBe('I eat something');
+  });
+
+  it('strips trailing $ anchor', () => {
+    expect(prettifyRegexPattern('I eat something$')).toBe('I eat something');
+  });
+
+  it('strips both anchors', () => {
+    expect(prettifyRegexPattern('^I eat something$')).toBe('I eat something');
+  });
+
+  it('leaves patterns with no anchors unchanged', () => {
+    expect(prettifyRegexPattern('I eat something')).toBe('I eat something');
+  });
+
+  it('converts (\\d+) to {number}', () => {
+    expect(prettifyRegexPattern('I eat (\\d+) cucumbers')).toBe('I eat {number} cucumbers');
+  });
+
+  it('converts (\\d*) to {number}', () => {
+    expect(prettifyRegexPattern('I have (\\d*) items')).toBe('I have {number} items');
+  });
+
+  it('converts float group (\\d+\\.\\d+) to {decimal}', () => {
+    expect(prettifyRegexPattern('price is (\\d+\\.\\d+)')).toBe('price is {decimal}');
+  });
+
+  it('converts (\\w+) to {word}', () => {
+    expect(prettifyRegexPattern('the (\\w+) is set')).toBe('the {word} is set');
+  });
+
+  it('converts (\\S+) to {token}', () => {
+    expect(prettifyRegexPattern('value is (\\S+)')).toBe('value is {token}');
+  });
+
+  it('converts (.+) to {text}', () => {
+    expect(prettifyRegexPattern('the message is (.+)')).toBe('the message is {text}');
+  });
+
+  it('converts (.+?) to {text}', () => {
+    expect(prettifyRegexPattern('the message is (.+?)')).toBe('the message is {text}');
+  });
+
+  it('converts (.*) to {text}', () => {
+    expect(prettifyRegexPattern('optional (.*) suffix')).toBe('optional {text} suffix');
+  });
+
+  it('converts named groups (?P<name>...) to {name}', () => {
+    expect(prettifyRegexPattern('(?P<user>\\w+) logs in')).toBe('{user} logs in');
+  });
+
+  it('handles multiple groups in one pattern', () => {
+    expect(prettifyRegexPattern('I have (\\d+) (\\w+) items')).toBe('I have {number} {word} items');
+  });
+
+  it('combines anchor stripping and group conversion', () => {
+    expect(prettifyRegexPattern('^I eat (\\d+) cucumbers?$')).toBe('I eat {number} cucumbers?');
+  });
+
+  it('leaves unrecognised groups unchanged', () => {
+    // A group with no known mapping should pass through
+    const input = 'step with (custom|group)';
+    expect(prettifyRegexPattern(input)).toBe(input);
   });
 });

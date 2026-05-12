@@ -1,3 +1,5 @@
+declare const __VERSION__: string;
+
 /**
  * server.ts — Stepwise LSP server
  *
@@ -45,6 +47,7 @@ import {
   resolveStep,
   parseStepLine,
   filterDefinitions,
+  prettifyRegexPattern,
 } from './stepMatcher';
 
 import { formatDocument } from './formatter';
@@ -353,7 +356,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
     },
     serverInfo: {
       name: 'stepwise',
-      version: '0.1.0',
+      version: __VERSION__,
     },
   };
 
@@ -494,18 +497,22 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
 
   return candidates.map((def, index) => {
     const basename = path.basename(def.file);
+    // Regex patterns are displayed with cleaned-up labels; cfparse/plain
+    // patterns are shown as-is.
+    const displayLabel = def.isRegex ? prettifyRegexPattern(def.pattern) : def.pattern;
+    const detailTag    = def.isRegex ? 'regex · ' : '';
     return {
-      label: def.pattern,
+      label: displayLabel,
       kind: CompletionItemKind.Text,
-      detail: `${def.decorator} — ${basename}:${def.line}`,
+      detail: `${detailTag}${def.decorator} — ${basename}:${def.line}`,
       documentation: {
         kind: 'markdown',
-        value: `**${def.decorator}**\`\`\`\n${def.pattern}\n\`\`\`\n*Defined in ${def.file}:${def.line}*`,
+        value: def.isRegex
+          ? `**${def.decorator}** *(regex)*\n\`\`\`regex\n${def.pattern}\n\`\`\`\n*Defined in ${def.file}:${def.line}*`
+          : `**${def.decorator}**\n\`\`\`\n${def.pattern}\n\`\`\`\n*Defined in ${def.file}:${def.line}*`,
       },
-      // Sort alphabetically within the result set
       sortText: String(index).padStart(6, '0'),
-      // Replace the current step text with the chosen pattern
-      insertText: def.pattern,
+      insertText: displayLabel,
     };
   });
 });
