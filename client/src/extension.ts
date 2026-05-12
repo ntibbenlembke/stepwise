@@ -50,7 +50,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   client = new LanguageClient(
     'stepwise',
-    'Stepwise BDD Language Server',
+    'StepWise BDD Language Server',
     serverOptions,
     clientOptions
   );

@@ -76,12 +76,12 @@
     "iconThemes": [
       {
         "id": "stepwise-cucumber",
-        "label": "Stepwise (Cucumber Icons)",
+        "label": "StepWise (Cucumber Icons)",
         "path": "./fileicons/stepwise-icon-theme.json"
       }
     ],
     "configuration": {
-      "title": "Stepwise",
+      "title": "StepWise",
       "properties": {
         "stepwise.stepDefinitionPaths": {
           "type": "array",

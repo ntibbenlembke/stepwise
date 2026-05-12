@@ -1,7 +1,7 @@
 declare const __VERSION__: string;
 
 /**
- * server.ts — Stepwise LSP server
+ * server.ts — StepWise LSP server
  *
  * Responsibilities:
  *  1. On startup: scan workspace Python files, invoke step_parser.py subprocess,
@@ -67,12 +67,12 @@ let supportsDynamicWatchers = false;
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-interface StepwiseConfig {
+interface StepWiseConfig {
   stepDefinitionPaths: string[];
   pythonPath: string;
 }
 
-async function getConfig(): Promise<StepwiseConfig> {
+async function getConfig(): Promise<StepWiseConfig> {
   const raw = await connection.workspace.getConfiguration('stepwise');
   return {
     stepDefinitionPaths: Array.isArray(raw?.stepDefinitionPaths) ? raw.stepDefinitionPaths : [],
@@ -358,7 +358,7 @@ connection.onInitialized(async () => {
 
   if (workspaceFolderPaths.length === 0) {
     const msg =
-      'Stepwise: no workspace folder is open, so step definitions cannot be indexed. ' +
+      'StepWise: no workspace folder is open, so step definitions cannot be indexed. ' +
       'Open a folder (File → Open Folder…) to enable step matching, diagnostics, and go-to-definition.';
     connection.console.warn(`[stepwise] ${msg}`);
     connection.window.showInformationMessage(msg);

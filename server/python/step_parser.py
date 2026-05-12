@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-step_parser.py — Stepwise Python step-definition extractor
+step_parser.py — StepWise Python step-definition extractor
 ===========================================================
 
 Reads a JSON array of Python file paths from stdin, walks the AST of each

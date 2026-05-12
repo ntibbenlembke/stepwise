@@ -1,4 +1,4 @@
-# Stepwise — BDD/Gherkin Language Support for VS Code
+# StepWise — BDD/Gherkin Language Support for VS Code
 
 [![CI](https://img.shields.io/github/actions/workflow/status/TalonTest/StepWise/ci.yml?style=flat-square&label=CI)](https://github.com/TalonTest/StepWise/actions/workflows/ci.yml)
 
