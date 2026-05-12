@@ -2,7 +2,7 @@
   "name": "stepwise",
   "displayName": "StepWise — BDD/Gherkin Support",
   "description": "PyCharm-inspired BDD support for VS Code: diagnostics, go-to-definition, and completion for Gherkin feature files backed by pytest-bdd step definitions.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "talon-test",
   "engines": {
     "vscode": "^1.82.0"
