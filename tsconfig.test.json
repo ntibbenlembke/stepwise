@@ -10,7 +10,8 @@
   },
   "include": [
     "tests/**/*",
-    "server/src/**/*"
+    "server/src/**/*",
+    "client/src/**/*"
   ],
   "exclude": [
     "node_modules",

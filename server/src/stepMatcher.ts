@@ -172,8 +172,11 @@ export function matchStep(
 
 // ─── Gherkin line parsing ──────────────────────────────────────────────────────
 
+// Trailing `\s*` is essential on CRLF files: JS regex `.` does not match `\r`,
+// so without it lines like "When …\r" never matched and were silently treated
+// as non-step lines.
 const STEP_KEYWORD_RE =
-  /^(\s*)(Given|When|Then|And|But)(\s+)(.+)$/i;
+  /^(\s*)(Given|When|Then|And|But)(\s+)(.+?)\s*$/i;
 
 export interface ParsedStep {
   /** The raw keyword as it appears in the source (e.g. "Given", "When") */

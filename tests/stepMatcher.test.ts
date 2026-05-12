@@ -196,6 +196,18 @@ describe('parseStepLine', () => {
     expect(result!.textStart).toBe('When '.length);
   });
 
+  it('parses a step line with a trailing CR (CRLF-split file)', () => {
+    // Regression: JS `.` does not match `\r`, so without `\s*$` at the end
+    // of the regex CRLF lines silently failed to parse and every step was
+    // treated as a non-step line.
+    const result = parseStepLine('    When User checks out the book\r');
+    expect(result).not.toBeNull();
+    expect(result!.keyword).toBe('When');
+    expect(result!.text).toBe('User checks out the book');
+    expect(result!.keywordStart).toBe(4);
+    expect(result!.textStart).toBe(4 + 'When '.length);
+  });
+
   it('parses Then, And, But', () => {
     for (const kw of ['Then', 'And', 'But']) {
       const result = parseStepLine(`${kw} something happens`);

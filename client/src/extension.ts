@@ -7,6 +7,12 @@ import {
   TransportKind,
 } from 'vscode-languageclient/node';
 
+import {
+  GENERATE_COMMAND_ID,
+  StepDefinitionCodeActionProvider,
+  generateStepDefinitionCommand,
+} from './codeActions';
+
 let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -62,6 +68,35 @@ export function activate(context: vscode.ExtensionContext): void {
       client.stop();
     },
   });
+
+  // Code-action provider and its command are registered behind try/catches so
+  // a failure here can't take the language client (and hence diagnostics) down
+  // with it.
+  try {
+    context.subscriptions.push(
+      vscode.languages.registerCodeActionsProvider(
+        { language: 'gherkin' },
+        new StepDefinitionCodeActionProvider(),
+        {
+          providedCodeActionKinds:
+            StepDefinitionCodeActionProvider.providedCodeActionKinds,
+        },
+      ),
+    );
+  } catch (err) {
+    console.error('[stepwise] Failed to register code action provider:', err);
+  }
+
+  try {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        GENERATE_COMMAND_ID,
+        generateStepDefinitionCommand,
+      ),
+    );
+  } catch (err) {
+    console.error('[stepwise] Failed to register generate command:', err);
+  }
 }
 
 export function deactivate(): Thenable<void> | undefined {
