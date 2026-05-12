@@ -17,6 +17,10 @@
   "homepage": "https://github.com/TalonTest/stepwise",
   "license": "Apache-2.0",
   "icon": "images/icon.png",
+  "galleryBanner" : {
+		"color": "#02271E",
+		"theme" : "dark"
+	},
   "categories": [
     "Programming Languages",
     "Linters"
