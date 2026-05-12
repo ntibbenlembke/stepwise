@@ -19,6 +19,11 @@ export interface StepDefinition {
   line: number;
   /** The decorator name: "given" | "when" | "then" */
   decorator: string;
+  /**
+   * True when the pattern came from re.compile(r"...") — it is a raw Python
+   * regex rather than a cfparse/parse format string.
+   */
+  isRegex?: boolean;
 }
 
 // ─── Pattern → RegExp conversion ──────────────────────────────────────────────
@@ -98,6 +103,45 @@ export function patternToRegex(pattern: string): RegExp {
   const re = new RegExp('^' + regexStr + '$', 'i');
   patternCache.set(pattern, re);
   return re;
+}
+
+// ─── Regex pattern display ────────────────────────────────────────────────────
+
+/**
+ * Convert a raw Python regex pattern to a human-readable label suitable for
+ * display in completion suggestions and documentation.
+ *
+ * The function strips regex anchors and converts common capturing-group forms
+ * to readable `{type}` placeholders.  It is intentionally conservative:
+ * unusual constructs are left unchanged rather than mangled.
+ *
+ * Examples:
+ *   "^I eat (\\d+) cucumbers?$"          → "I eat {number} cucumbers?"
+ *   "I have (\\d+\\.\\d+) items"         → "I have {decimal} items"
+ *   "(?P<name>\\w+) logs in"             → "{name} logs in"
+ *   "the (\\w+) is (\\S+)"              → "the {word} is {token}"
+ */
+export function prettifyRegexPattern(raw: string): string {
+  return raw
+    // Strip leading ^ and trailing $ anchors
+    .replace(/^\^/, '')
+    .replace(/\$$/, '')
+    // Named capturing groups: (?P<name>...) → {name}
+    .replace(/\(\?P<(\w+)>[^)]*\)/g, '{$1}')
+    // Float before integer so (\d+\.\d+) doesn't partially match (\d+)
+    .replace(/\(\\d\+\\.\\d\+\)/g, '{decimal}')
+    // Integer groups
+    .replace(/\(\\d\+\)/g, '{number}')
+    .replace(/\(\\d\*\)/g, '{number}')
+    // Word / token groups
+    .replace(/\(\\w\+\)/g, '{word}')
+    .replace(/\(\\S\+\)/g, '{token}')
+    // Wildcard groups (.+) / (.+?) / (.*) / (.*?)
+    .replace(/\(\.\+\??\)/g, '{text}')
+    .replace(/\(\.\*\??\)/g, '{text}')
+    // Character-class groups like ([^"]+), ([^,]+)
+    .replace(/\(\[[\^][^\]]*\]\+\)/g, '{text}')
+    .trim();
 }
 
 // ─── Step matching ─────────────────────────────────────────────────────────────
@@ -227,7 +271,12 @@ export function filterDefinitions(
   const lower = query.toLowerCase();
   const results: StepDefinition[] = [];
   for (const def of definitions) {
-    if (def.pattern.toLowerCase().includes(lower)) {
+    // For regex patterns, search both the raw pattern and the prettified label
+    // so that typing "number" or "eat 5" can both surface the same definition.
+    const searchable = def.isRegex
+      ? def.pattern.toLowerCase() + ' ' + prettifyRegexPattern(def.pattern).toLowerCase()
+      : def.pattern.toLowerCase();
+    if (searchable.includes(lower)) {
       results.push(def);
       if (results.length >= limit) break;
     }

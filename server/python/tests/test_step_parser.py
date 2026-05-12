@@ -334,3 +334,95 @@ def test_main_with_invalid_json_returns_empty_array(capsys):
 
     captured = capsys.readouterr()
     assert json.loads(captured.out) == []
+
+
+# ── is_regex field ────────────────────────────────────────────────────────────
+
+
+def test_plain_string_is_not_regex():
+    path = write_py("""
+        from pytest_bdd import given
+
+        @given("I eat {count:d} cucumbers")
+        def step():
+            pass
+    """)
+    steps = parse_file(path)
+    assert len(steps) == 1
+    assert steps[0]["is_regex"] is False
+
+
+def test_parsers_cfparse_is_not_regex():
+    path = write_py("""
+        from pytest_bdd import given
+        from pytest_bdd import parsers
+
+        @given(parsers.cfparse("I have {count:d} items"))
+        def step():
+            pass
+    """)
+    steps = parse_file(path)
+    assert len(steps) == 1
+    assert steps[0]["is_regex"] is False
+
+
+def test_parsers_parse_is_not_regex():
+    path = write_py("""
+        from pytest_bdd import given
+        from pytest_bdd import parsers
+
+        @given(parsers.parse("I have {count} items"))
+        def step():
+            pass
+    """)
+    steps = parse_file(path)
+    assert len(steps) == 1
+    assert steps[0]["is_regex"] is False
+
+
+def test_re_compile_is_regex():
+    path = write_py(r"""
+        import re
+        from pytest_bdd import given
+
+        @given(re.compile(r"I eat (\d+) cucumbers?"))
+        def step():
+            pass
+    """)
+    steps = parse_file(path)
+    assert len(steps) == 1
+    assert steps[0]["pattern"] == r"I eat (\d+) cucumbers?"
+    assert steps[0]["is_regex"] is True
+
+
+def test_re_compile_pattern_preserved_verbatim():
+    """The raw regex string must be stored exactly as written, including anchors."""
+    path = write_py(r"""
+        import re
+        from pytest_bdd import given
+
+        @given(re.compile(r"^the user (\w+) is logged (in|out)$"))
+        def step():
+            pass
+    """)
+    steps = parse_file(path)
+    assert len(steps) == 1
+    assert steps[0]["pattern"] == r"^the user (\w+) is logged (in|out)$"
+    assert steps[0]["is_regex"] is True
+
+
+def test_other_compile_call_is_not_regex():
+    """compile() not prefixed with the re module should not be flagged as regex."""
+    path = write_py("""
+        from pytest_bdd import given
+
+        def compile(x):
+            return x
+
+        @given(compile("I do something"))
+        def step():
+            pass
+    """)
+    steps = parse_file(path)
+    assert len(steps) == 1
+    assert steps[0]["is_regex"] is False

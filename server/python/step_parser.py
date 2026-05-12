@@ -60,35 +60,48 @@ def _constant_string(node: ast.expr) -> Optional[str]:
     return None
 
 
-def _extract_from_parsers_or_re_call(call: ast.Call) -> Optional[str]:
+def _extract_from_wrapper_call(call: ast.Call) -> Optional[Dict[str, Any]]:
     """
     Handle helper-function wrappers:
         parsers.cfparse("pattern")
         parsers.parse("pattern")
         re.compile(r"pattern")
-    Returns the inner string, or None if the call doesn't match.
+
+    Returns {"pattern": str, "is_regex": bool} or None if the call doesn't
+    match a recognised wrapper form.
     """
     func = call.func
     attr_name: Optional[str] = None
+    module_name: Optional[str] = None
 
     if isinstance(func, ast.Attribute):
         attr_name = func.attr
+        if isinstance(func.value, ast.Name):
+            module_name = func.value.id
     elif isinstance(func, ast.Name):
         attr_name = func.id
 
-    if attr_name not in {"cfparse", "parse", "re", "compile"}:
+    if attr_name not in {"cfparse", "parse", "compile"}:
         return None
 
-    if call.args:
-        return _constant_string(call.args[0])
+    if not call.args:
+        return None
 
-    return None
+    val = _constant_string(call.args[0])
+    if val is None:
+        return None
+
+    # re.compile() produces a raw regex; parsers.cfparse/parse produce format strings.
+    is_regex = attr_name == "compile" and module_name == "re"
+    return {"pattern": val, "is_regex": is_regex}
 
 
-def extract_pattern(decorator: ast.expr) -> Optional[str]:
+def extract_pattern(decorator: ast.expr) -> Optional[Dict[str, Any]]:
     """
-    Given the AST node of a decorator, return the step pattern string, or None
-    if it cannot be determined statically.
+    Given the AST node of a decorator, return a dict with the step pattern
+    and its source type, or None if it cannot be determined statically.
+
+    Return shape:  {"pattern": str, "is_regex": bool}
 
     Handles:
         @given("pattern")                   — Call with a string literal arg
@@ -106,28 +119,24 @@ def extract_pattern(decorator: ast.expr) -> Optional[str]:
         # Direct string literal
         val = _constant_string(first)
         if val is not None:
-            return val
-        # Wrapped call: parsers.cfparse(...) etc.
+            return {"pattern": val, "is_regex": False}
+        # Wrapped call: parsers.cfparse(...) / re.compile(...) etc.
         if isinstance(first, ast.Call):
-            val = _extract_from_parsers_or_re_call(first)
-            if val is not None:
-                return val
+            info = _extract_from_wrapper_call(first)
+            if info is not None:
+                return info
 
     # --- Keyword arguments ---
     # pytest-bdd accepts: @given(target_fixture="...", name="pattern")
-    # or just: @given(target_fixture="...", "pattern") — but the pattern is
-    # often the first positional arg; check keyword keys as a fallback.
     for kw in decorator.keywords:
-        if kw.arg in ("name", "pattern", "target_fixture"):
-            # "name" is the step pattern in recent pytest-bdd versions
-            if kw.arg in ("name", "pattern"):
-                val = _constant_string(kw.value)
-                if val is not None:
-                    return val
-                if isinstance(kw.value, ast.Call):
-                    val = _extract_from_parsers_or_re_call(kw.value)
-                    if val is not None:
-                        return val
+        if kw.arg in ("name", "pattern"):
+            val = _constant_string(kw.value)
+            if val is not None:
+                return {"pattern": val, "is_regex": False}
+            if isinstance(kw.value, ast.Call):
+                info = _extract_from_wrapper_call(kw.value)
+                if info is not None:
+                    return info
 
     return None
 
@@ -197,15 +206,16 @@ def parse_file(filepath: str) -> List[Dict[str, Any]]:
             if dec_name is None:
                 continue
 
-            pattern = extract_pattern(dec)
-            if pattern is None:
+            info = extract_pattern(dec)
+            if info is None:
                 # Decorator is a step keyword but we couldn't extract a static
                 # pattern (e.g. it's a variable reference).  Skip.
                 continue
 
             results.append(
                 {
-                    "pattern": pattern,
+                    "pattern": info["pattern"],
+                    "is_regex": info["is_regex"],
                     "file": filepath,
                     "line": node.lineno,
                     "decorator": dec_name,
