@@ -32,7 +32,12 @@
     "cucumber",
     "feature",
     "testing",
-    "python"
+    "python",
+    "pytest",
+    "scenario",
+    "automation",
+    "acceptance-testing",
+    "behave"
   ],
   "main": "./out/client/extension.js",
   "contributes": {
