@@ -381,6 +381,15 @@ connection.onInitialized(async () => {
     section: 'stepwise',
   });
 
+  if (workspaceFolderPaths.length === 0) {
+    const msg =
+      'Stepwise: no workspace folder is open, so step definitions cannot be indexed. ' +
+      'Open a folder (File → Open Folder…) to enable step matching, diagnostics, and go-to-definition.';
+    connection.console.warn(`[stepwise] ${msg}`);
+    connection.window.showInformationMessage(msg);
+    return;
+  }
+
   await refreshStepDefinitions();
 });
 
