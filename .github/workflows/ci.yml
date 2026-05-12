@@ -35,5 +35,8 @@ jobs:
       - name: Python tests
         run: python -m pytest server/python/tests/
 
+      - name: Build extension
+        run: npm run build
+
       - name: Package extension
         run: npx --yes @vscode/vsce package --no-dependencies
